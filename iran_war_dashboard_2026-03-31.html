@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iran War Situation Dashboard — 31 March 2026</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --border: #334155;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --shadow: 0 10px 30px rgba(0,0,0,.22);
+      --tab: #0b1220;
+      --chip: #172033;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f3f7fb;
+        --panel: #ffffff;
+        --panel-2: #f8fafc;
+        --text: #0f172a;
+        --muted: #475569;
+        --border: #dbe3ee;
+        --tab: #eef3f9;
+        --chip: #eef4fb;
+        --shadow: 0 10px 24px rgba(15,23,42,.08);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1480px; margin: 0 auto; padding: 20px; }
+    .header {
+      background: linear-gradient(135deg, rgba(239,68,68,.18), rgba(59,130,246,.12));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .header h1 { margin: 0 0 10px; font-size: 28px; }
+    .subline { color: var(--muted); font-size: 14px; display:flex; gap:18px; flex-wrap: wrap; }
+    .alert {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(239,68,68,.45);
+      background: rgba(239,68,68,.08);
+    }
+    .tabs {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      background: var(--tab);
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 16px;
+      position: sticky; top: 0; z-index: 5;
+      backdrop-filter: blur(10px);
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .grid { display:grid; gap:14px; }
+    .metrics { grid-template-columns: repeat(5, minmax(0,1fr)); }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    @media (max-width: 1100px){ .metrics,.cols-2,.cols-3 { grid-template-columns:1fr; } }
+    .card {
+      background: var(--panel);
+      border:1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .metric .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .metric .value { font-size: 30px; font-weight: 800; margin-top: 6px; }
+    .metric .note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .h { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
+    h2,h3,h4 { margin:0; }
+    p { margin: 6px 0 0; }
+    .section-note { color: var(--muted); font-size:13px; }
+    .chip { display:inline-flex; padding:4px 10px; border-radius:999px; background:var(--chip); border:1px solid var(--border); color:var(--muted); font-size:12px; margin: 4px 6px 0 0; }
+    .status { font-weight:700; padding:4px 10px; border-radius:999px; font-size:12px; display:inline-block; }
+    .red { background: rgba(239,68,68,.12); color: var(--red); }
+    .amber { background: rgba(245,158,11,.12); color: var(--amber); }
+    .blue { background: rgba(59,130,246,.12); color: var(--blue); }
+    .green { background: rgba(34,197,94,.12); color: var(--green); }
+    .timeline { position:relative; margin: 8px 0 0 10px; padding-left:18px; border-left:2px solid var(--border); }
+    .tl-item { position:relative; padding: 0 0 18px 14px; }
+    .dot { width:12px; height:12px; border-radius:50%; position:absolute; left:-25px; top:4px; border:2px solid var(--panel); }
+    .dot.red { background:var(--red); } .dot.amber { background:var(--amber); } .dot.blue { background:var(--blue); } .dot.green { background:var(--green); }
+    .tl-date { font-weight:700; font-size:13px; }
+    .src { color: var(--muted); font-size:12px; margin-top:5px; }
+    .list { display:grid; gap:10px; }
+    .list-item { border:1px solid var(--border); border-radius:14px; padding:12px; background: var(--panel-2); }
+    table { width:100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+    th { color: var(--muted); font-weight: 700; }
+    .btn {
+      border:none; background: var(--blue); color:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700;
+    }
+    .btn.secondary { background: transparent; color: var(--text); border:1px solid var(--border); }
+    .footer-note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .tight p { margin-top: 4px; }
+    .split { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .split > div { flex:1; }
+    .contradiction { border-left:4px solid var(--amber); padding-left:10px; margin-top:8px; }
+    canvas { max-height: 320px; }
+    .legend { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .legend .sw { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; }
+    .legend .box { width:10px; height:10px; border-radius:50%; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    .hero-grid { display:grid; grid-template-columns: 1.25fr .95fr; gap:14px; margin-top:14px; }
+    .report-kicker { color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 700; }
+    .report-title { font-size: 34px; line-height: 1.1; margin: 8px 0 6px; }
+    .report-dek { color: var(--muted); max-width: 1000px; }
+    .report-meta { display:flex; gap:14px; flex-wrap:wrap; color: var(--muted); font-size:13px; margin-top: 10px; }
+    .report-box { border-left: 4px solid var(--blue); padding-left: 12px; }
+    .watch-box { border-left: 4px solid var(--red); padding-left: 12px; }
+    .summary-points { display:grid; gap:10px; margin-top:10px; }
+    .summary-points .point { padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); }
+    .assessment-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:14px; }
+    .mini-note { font-size:12px; color: var(--muted); }
+    .source-pill { display:inline-block; padding:5px 9px; border-radius:999px; border:1px solid var(--border); background: var(--chip); color: var(--muted); font-size:12px; margin:4px 6px 0 0; }
+    .annex-list { columns: 2; column-gap: 24px; }
+    .annex-list li { break-inside: avoid; margin-bottom: 8px; }
+    .print-only { display:none; }
+    @media (max-width: 1100px){ .hero-grid, .assessment-grid { grid-template-columns:1fr; } .annex-list { columns:1; } }
+    @media print {
+      body { background: #fff; color: #111827; }
+      .tabs, .toolbar, .btn { display:none !important; }
+      .tab-panel { display:block !important; page-break-inside: avoid; }
+      .card, .header { box-shadow:none; break-inside: avoid; }
+      .wrap { max-width: none; padding: 0; }
+      .print-only { display:block; }
+    }
+  </style>
+
+<style>
+#promptModalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:99999}
+#promptModal{width:min(820px,92vw);max-height:85vh;overflow:auto;background:var(--panel-bg,#111827);color:var(--text,#f3f4f6);border:1px solid var(--border,#374151);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);padding:18px}
+#promptModal h3{margin:0 0 10px 0;font-size:1.1rem}
+#promptModal p{margin:0 0 12px 0;opacity:.9}
+#promptModal textarea{width:100%;min-height:220px;resize:vertical;border-radius:10px;border:1px solid var(--border,#4b5563);padding:12px;background:var(--card-bg,#0b1220);color:inherit;font:inherit}
+#promptModal .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+#promptModal button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+#promptCopyBtn{background:#2563eb;color:#fff}
+#promptOpenBtn{background:#059669;color:#fff}
+#promptCloseBtn{background:#374151;color:#fff}
+</style>
+
+
+<style>
+#promptModal{background:#ffffff !important;color:#111111 !important;border:1px solid #d1d5db !important;box-shadow:0 10px 30px rgba(0,0,0,.15) !important}
+#promptModal textarea{background:#ffffff !important;color:#111111 !important;border:1px solid #d1d5db !important}
+#promptCloseBtn{background:#e5e7eb !important;color:#111111 !important}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="report-kicker">Cross-Media Political Situation Dashboard</div>
+    <div class="report-title">Iran: Day 31 of War — Escalation Pressure, Fragmented Diplomacy, Maritime Shock</div>
+    <div class="report-dek">Interactive dashboard styled as a policy brief, integrating dashboard metrics with narrative elements from the uploaded situational report format: executive summary, critical watch, analyst assessment, and a more explicit source-critical annex.</div>
+    <div class="report-meta">
+      <span><strong>Date:</strong> 31 March 2026</span>
+      <span><strong>Conflict day:</strong> 31</span>
+      <span><strong>Baseline:</strong> War began 28 February 2026</span>
+      <span><strong>Scan set:</strong> 16 named Middle East / international outlets + UN track</span>
+    </div>
+    <div class="toolbar">
+      <button class="btn" onclick="window.print()">Export / Print PDF</button>
+      <button class="btn secondary" onclick="document.body.classList.toggle('report-mode')">Toggle report emphasis</button>
+      <button class="btn secondary" onclick="sendPrompt('Convert this dashboard into a formal 2-page policy brief with key judgments, scenario indicators and source-critical notes.')">Send follow-up prompt</button>
+    </div>
+    <div class="hero-grid">
+      <div class="alert">
+        <strong>Breaking alert:</strong> The situation remains in the escalation zone on 31 March. Same-day reporting points to heavy strikes on Tehran and Isfahan, renewed Iranian attacks across Israel and the Gulf, direct threats against Kharg Island, and clearer risk that the Red Sea front could widen via Houthi action.
+      </div>
+      <div class="card" style="padding:14px 16px;">
+        <div class="watch-box">
+          <h3>Critical watch — next 24–72 hours</h3>
+          <p>Watch for four triggers over the next 24–72 hours: (1) any strike on <strong>Kharg Island</strong> or desalination/power infrastructure, (2) confirmation of sustained <strong>Houthi / Bab al-Mandab</strong> operations, (3) whether Islamabad-China diplomacy crystallizes into a formal format, and (4) whether the UN track moves from institution-building into negotiated confidence measures.</p>
+          <div class="mini-note">Report-style element added from the uploaded situational brief format.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <section id="overview" class="tab-panel active">
+    <div class="grid metrics">
+      <div class="card metric"><div class="label">War day</div><div class="value">32</div><div class="note">Counting from 28 Feb 2026.</div></div>
+      <div class="card metric"><div class="label">Reported deaths</div><div class="value">2,000+</div><div class="note">Iranian authorities cited by Al Jazeera say more than 2,000 have been killed in US-Israeli strikes; totals across all fronts remain contested.</div></div>
+      <div class="card metric"><div class="label">Brent crude</div><div class="value">$114–$117</div><div class="note">Today’s reported range; some market reports warn of a higher stress path.</div></div>
+      <div class="card metric"><div class="label">Active mediators / tracks</div><div class="value">8</div><div class="note">Pakistan, Saudi Arabia, Türkiye, Egypt, China, EU, UN Personal Envoy, UNOPS-led Hormuz task force.</div></div>
+      <div class="card metric"><div class="label">Hormuz status</div><div class="value">Severely disrupted</div><div class="note">UN reporting references >90% drop in tanker traffic.</div></div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:14px;">
+      <div class="card">
+        <div class="h"><h3>About this dashboard</h3><span class="section-note">Policy-report styling layer</span></div>
+        <div class="report-box">
+          <p>This dashboard blends a real-time tabbed interface with the narrative structure of a political situation report: executive summary logic, critical watch indicators, analyst assessment, and a source-critical annex. It is intended as a decision-support starting point rather than a substitute for human verification.</p>
+          <p class="small">Method: cross-source comparison across state, opposition, partisan, pan-Arab, business, and institutional outlets; contradictions are retained and flagged where possible rather than flattened into a single storyline.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Executive summary</h3><span class="section-note">Report-style synthesis</span></div>
+        <div class="summary-points">
+          <div class="point"><strong>Military:</strong> The war remains in an escalatory phase. Kharg Island, Gulf infrastructure, and the Lebanon front continue to function as escalation multipliers.</div>
+          <div class="point"><strong>Diplomacy:</strong> The central gap remains structural, not cosmetic: Washington signals pressure-backed diplomacy, while Tehran rejects current terms as excessive and insists on sovereignty, guarantees, and broader recognition of rights.</div>
+          <div class="point"><strong>UN track:</strong> The Personal Envoy channel and UNOPS-Hormuz task force now give the crisis a more formalized institutional lane, but not yet a consolidated negotiating framework.</div>
+          <div class="point"><strong>Energy:</strong> Maritime disruption remains the principal global transmission channel, with Hormuz risk still far more consequential than any single tactical battlefield event.</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">Last rescan incorporated same-day reporting published on 31 March 2026, with direct source links embedded where updated claims are used.</div>
+
+    <div class="grid cols-2" style="margin-top:14px;">
+      <div class="card tight">
+        <div class="h"><h3>Executive overview</h3><button class="btn" onclick="sendPrompt('Give me a tighter 300-word strategic overview of the Iran war as of 31 March 2026, highlighting military, diplomacy, energy and disinformation.')">Send follow-up prompt</button></div>
+        <p><span class="status red">Danger</span> Operational momentum remains escalatory: fresh US-Israeli strikes inside Iran, continued Iranian missile and proxy-linked activity, and explicit US threats against Kharg Island and civilian energy infrastructure.</p>
+        <p><span class="status amber">Warning</span> The diplomatic field is active but fragmented. Washington says messages and some direct talks are occurring via intermediaries; Tehran publicly rejects the current US terms as excessive and unreasonable.</p>
+        <p><span class="status blue">Institutional</span> The UN track is now formalized around Secretary-General António Guterres’ Personal Envoy Jean Arnault and a UNOPS-led Strait of Hormuz Task Force with UNCTAD and IMO participation.</p>
+        <p><span class="status green">Potential off-ramp</span> Islamabad has become the main regional venue for multilateral mediation involving Pakistan, Saudi Arabia, Türkiye and Egypt, with EU engagement now visible.</p>
+        <div class="contradiction small"><strong>Contradiction flag:</strong> US-linked reporting emphasizes diplomacy and backchannel movement, while Iranian and aligned outlets continue to frame the war as imposed aggression and stress military resolve. Treat claims of imminent settlement with caution.</div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Escalation timeline</h3><span class="section-note">All main diplomatic tracks included</span></div>
+        <div class="timeline">
+          <div class="tl-item"><div class="dot red"></div><div class="tl-date">28 Feb 2026</div><div>War begins with US-Israeli strikes on Iranian targets. Conflict rapidly expands to Israel-facing, Gulf-facing, and maritime theatres.</div><div class="src">Source: Reuters, 30 Mar 2026</div></div>
+          <div class="tl-item"><div class="dot blue"></div><div class="tl-date">Early Mar 2026</div><div>UN Security Council pressure intensifies. Resolution 2817 (2026) demands cessation of Iranian attacks against neighboring states and protection of civilian areas.</div><div class="src">Source: UN documentation / press material, March 2026</div></div>
+          <div class="tl-item"><div class="dot amber"></div><div class="tl-date">Mid Mar 2026</div><div>Hormuz disruption becomes the central economic multiplier, with energy, fertilizer, shipping and food-chain implications widening beyond the region.</div><div class="src">Source: Reuters; UN-linked reporting; Al Eqtisadiah</div></div>
+          <div class="tl-item"><div class="dot blue"></div><div class="tl-date">25 Mar 2026</div><div>UN Secretary-General appoints Jean Arnault as Personal Envoy for the conflict’s political track.</div><div class="src">Source: Reuters, 25 Mar 2026</div></div>
+          <div class="tl-item"><div class="dot blue"></div><div class="tl-date">27 Mar 2026</div><div>UN announces a UNOPS-led task force for the Strait of Hormuz to preserve humanitarian and commercial flows of fertilizer and related materials.</div><div class="src">Source: UN briefings; India.UN repost; PassBlue, 27 Mar 2026</div></div>
+          <div class="tl-item"><div class="dot blue"></div><div class="tl-date">29–30 Mar 2026</div><div><strong>Islamabad process:</strong> Pakistan hosts Saudi, Turkish and Egyptian foreign ministers, pitching Islamabad as a venue for de-escalation and possible US-Iran talks.</div><div class="src">Source: Arab News, Reuters, Al Jazeera, 29–30 Mar 2026</div></div>
+          <div class="tl-item"><div class="dot blue"></div><div class="tl-date">30 Mar 2026</div><div><strong>Bilateral channels:</strong> Egypt’s President el-Sisi appeals directly to Trump; Rubio says intermediated conversations are under way; EU Council President Costa consults with Pakistan’s prime minister.</div><div class="src">Source: Ahram Online; Al Jazeera; Reuters, 30 Mar 2026</div></div>
+          <div class="tl-item"><div class="dot red"></div><div class="tl-date">30 Mar 2026</div><div>Military pressure escalates again around Kharg Island, Turkish airspace, Gulf infrastructure risk, and the Lebanon front.</div><div class="src">Source: Ahram Online; Asharq Al-Awsat; Al-Alam; Reuters-linked reporting</div></div>
+          <div class="tl-item"><div class="dot blue"></div><div class="tl-date">31 Mar 2026</div><div><strong>Islamabad–Beijing layer added:</strong> Pakistan carries the mediation push to China, while Arab commentary frames the Saudi-Türkiye-Egypt-Pakistan quartet as the last serious regional off-ramp.</div><div class="src">Sources: <a href="https://www.arabnews.com/node/2638310" target="_blank" rel="noopener noreferrer">Arab News, 31 Mar</a>; <a href="https://www.arabnews.com/node/2638314/pakistan" target="_blank" rel="noopener noreferrer">Arab News, 31 Mar</a></div></div>
+          <div class="tl-item"><div class="dot red"></div><div class="tl-date">31 Mar 2026</div><div><strong>Houthis / Red Sea front:</strong> reporting now points to Houthi operational signaling tied to further US escalation, with Bab al-Mandab and Red Sea shipping explicitly identified as a secondary maritime risk axis.</div><div class="src">Sources: <a href="https://arabic.rt.com/middle_east/1773178-%D8%A8%D9%84%D9%88%D9%85%D8%A8%D8%B1%D8%BA-%D8%AA%D8%AD%D8%B1%D9%83%D8%A7%D8%AA-%D8%A7%D9%84%D8%AD%D9%88%D8%AB%D9%8A%D9%8A%D9%86-%D9%85%D8%B1%D9%87%D9%88%D9%86%D8%A9-%D8%A8%D8%AE%D8%B7%D9%88%D8%A7%D8%AA-%D9%88%D8%A7%D8%B4%D9%86%D8%B7%D9%86-%D8%B6%D8%AF-%D8%A5%D8%B1%D8%A7%D9%86-%D9%88%D8%B3%D8%B7-%D9%85%D8%AE%D8%A7%D9%88%D9%81-%D8%AC%D8%AF%D9%8A%D8%A9-%D9%85%D9%86-%D8%AA%D8%B5%D8%B9%D9%8A%D8%AF-%D9%81%D9%8A-%D8%A7%D9%84%D8%A8%D8%AD%D8%B1-%D8%A7%D9%84%D8%A3%D8%AD%D9%85%D8%B1/" target="_blank" rel="noopener noreferrer">RT Arabic / Bloomberg relay, 31 Mar</a>; <a href="https://www.aljazeera.com/news/2026/3/31/iran-war-what-is-happening-on-day-32-of-us-israel-attacks" target="_blank" rel="noopener noreferrer">Al Jazeera, 31 Mar</a></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="h"><h3>Analyst assessment — key uncertainties</h3><button class="btn" onclick="sendPrompt('Provide an analyst assessment of the main uncertainties in the Iran war as of 31 March 2026, with indicators to watch over the next 72 hours.')">Send follow-up prompt</button></div>
+      <div class="assessment-grid">
+        <div class="list-item"><strong>Ceasefire probability:</strong><p>Still low in the immediate term. Mediation has broadened, but bargaining space remains structurally narrow and coercive rhetoric is still intensifying.</p></div>
+        <div class="list-item"><strong>Kharg trigger risk:</strong><p>High symbolic and material significance means even limited action around Kharg could re-price escalation rapidly.</p></div>
+        <div class="list-item"><strong>UN track effectiveness:</strong><p>Institutionally important, but likely to remain procedural unless a state-backed negotiating format converges around it.</p></div>
+        <div class="list-item"><strong>Regional spillover:</strong><p>Lebanon, Gulf infrastructure, and maritime chokepoints remain the most plausible vectors for widening beyond the current operational pattern.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="military" class="tab-panel">
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="h"><h3>Current operations snapshot</h3><button class="btn" onclick="sendPrompt('Assess today\'s military balance in the Iran war, focusing on Kharg Island, Lebanon, Gulf infrastructure, Turkish airspace incidents and potential new fronts.')">Send follow-up prompt</button></div>
+        <div class="list">
+          <div class="list-item"><span class="status red">Kharg Island</span><p>Kharg remains the most sensitive energy-military node. Trump has openly threatened to destroy or seize it; Arab News commentary and Al Jazeera reporting describe it as central to pressure on Iranian oil exports.</p><div class="src">Ahram Online / AFP, 30 Mar; Al Jazeera, 30 Mar; Arab News, 30 Mar</div></div>
+          <div class="list-item"><span class="status red">Iran interior strikes</span><p>Iran International Arabic and Al Arabiya both point to new strikes or explosions in Tehran and other cities today, indicating sustained strike depth rather than a pause.</p><div class="src">Iran International Arabic, 30 Mar; Al Arabiya, 30 Mar</div></div>
+          <div class="list-item"><span class="status amber">Turkish airspace</span><p>Asharq Al-Awsat and Al Arabiya both report another Iranian missile entering Turkish airspace and being intercepted by NATO defenses.</p><div class="src">Asharq Al-Awsat, 30 Mar; Al Arabiya, 30 Mar</div></div>
+          <div class="list-item"><span class="status red">Lebanon front</span><p>Al-Alam emphasizes Hezbollah rocket activity; wider reporting indicates the Lebanon theatre remains active and strategically linked to pressure on Israel.</p><div class="src">Al-Alam, 30 Mar; broader regional reporting, 30 Mar</div></div>
+          <div class="list-item"><span class="status amber">New fronts</span><p>Gulf infrastructure, cyber-enabled battlefield awareness, and possible US ground options are now part of the operational conversation. None should be treated as settled decisions.</p><div class="src">Reuters/market coverage, 30 Mar; RT Arabic, 30 Mar; Al Jazeera, 30 Mar</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Military assessment table</h3><span class="section-note">Claims are kept separate where sources diverge</span></div>
+        <table>
+          <thead><tr><th>Theatre</th><th>Status</th><th>What is reported today</th><th>Confidence</th></tr></thead>
+          <tbody>
+            <tr><td>Kharg Island</td><td><span class="status red">High-risk</span></td><td>Explicit US threat posture toward Iran’s export hub; possible seizure or destruction discussed publicly.</td><td>High on rhetoric; low on execution certainty</td></tr>
+            <tr><td>Israel mainland</td><td><span class="status red">Active</span></td><td>RT Arabic reports additional Iranian missile waves; Ahram tracks refinery-related impacts in Haifa-area reporting.</td><td>Medium-high</td></tr>
+            <tr><td>Lebanon</td><td><span class="status red">Active</span></td><td>Aligned outlets emphasize Hezbollah rocket activity; broader press notes continued fatalities and pressure on the front.</td><td>Medium</td></tr>
+            <tr><td>Gulf states</td><td><span class="status amber">Exposed</span></td><td>Critical infrastructure remains explicitly threatened; Kuwait strike narratives remain contested.</td><td>Medium</td></tr>
+            <tr><td>Turkey / NATO edge</td><td><span class="status amber">Spillover</span></td><td>Another ballistic missile reportedly crossed into Turkish airspace and was intercepted.</td><td>Medium-high</td></tr>
+            <tr><td>US ground option</td><td><span class="status amber">Contingency</span></td><td>Discussed in US and regional reporting, but no authoritative confirmation of a final decision.</td><td>Low-medium</td></tr>
+          </tbody>
+        </table>
+        <div class="contradiction small"><strong>Contradiction flag:</strong> Iranian-aligned outlets highlight successful strikes on US and Israeli command nodes, while Western and Gulf outlets focus more on retaliatory pressure and Iran’s degraded position.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="diplomacy" class="tab-panel">
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="h"><h3>US / Iran positions side by side</h3><button class="btn" onclick="sendPrompt('Compare current US and Iranian negotiating positions on 31 March 2026, separating public demands, private messaging and likely non-negotiables.')">Send follow-up prompt</button></div>
+        <div class="split">
+          <div>
+            <span class="status blue">US position</span>
+            <p>Rubio says Trump prefers diplomacy, but demands reopening Hormuz, ending nuclear weaponization pathways, and curbing missile and drone capabilities.</p>
+            <p>Public rhetoric still includes coercive threats against Kharg Island and broader civilian-linked infrastructure.</p>
+            <div class="src">Al Jazeera, 30 Mar; Ahram Online / AFP, 30 Mar</div>
+          </div>
+          <div>
+            <span class="status blue">Iran position</span>
+            <p>Tehran says current US proposals are excessive, unrealistic and unreasonable. Iranian statements continue to insist on sovereignty, reparations, guarantees against renewed aggression, and recognition of Iran’s rights.</p>
+            <div class="src">Ahram Online, 30 Mar; RT Arabic, 30 Mar</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Arab state positioning matrix</h3><span class="section-note">Same-day mediation and de-escalation posture, not a fixed alliance map</span></div>
+        <canvas id="alignmentChart"></canvas>
+        <div class="footer-note">This scale measures same-day de-escalation activity and mediation behavior rather than permanent geopolitical alignment.</div>
+      </div>
+    </div>
+
+    <div class="grid cols-3" style="margin-top:14px;">
+      <div class="card">
+        <div class="h"><h3>(a) Bilateral state channels</h3></div>
+        <div class="list">
+          <div class="list-item"><p><strong>Egypt → US:</strong> President el-Sisi personally urged Trump to stop the war and warned of energy fallout.</p><div class="src">Ahram Online, 30 Mar</div></div>
+          <div class="list-item"><p><strong>US ↔ Iran via intermediaries:</strong> Rubio says messages and some direct talks are occurring through intermediaries; Iran denies meaningful direct talks.</p><div class="src">Al Jazeera, 30 Mar; Ahram Online, 30 Mar</div></div>
+          <div class="list-item"><p><strong>EU → Pakistan:</strong> European Council President Costa discussed the conflict and Islamabad consultations with PM Shehbaz Sharif.</p><div class="src">Reuters, 30 Mar</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>(b) Multilateral initiatives</h3></div>
+        <div class="list">
+          <div class="list-item"><p><strong>Islamabad quadrilateral:</strong> Pakistan, Saudi Arabia, Türkiye and Egypt met to coordinate de-escalation and open a negotiating track.</p><div class="src">Arab News, Reuters, 29–30 Mar</div></div>
+          <div class="list-item"><p><strong>Regional Arab engagement:</strong> Saudi, Jordan and Qatar-linked reporting frames the war as a direct regional stability and infrastructure threat.</p><div class="src">Al Arabiya, 30 Mar; Arab News, 30 Mar</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>(c) UN / institutional tracks</h3></div>
+        <div class="list">
+          <div class="list-item"><p><strong>Secretary-General’s Personal Envoy:</strong> Jean Arnault appointed 25 March to lead UN political engagement on the conflict.</p><div class="src">Reuters, 25 Mar</div></div>
+          <div class="list-item"><p><strong>UNOPS Strait of Hormuz Task Force:</strong> Led by Jorge Moreira da Silva with UNCTAD and IMO participation to preserve humanitarian and commercial passage.</p><div class="src">UN-linked reporting / India.UN / PassBlue, 27–30 Mar</div></div>
+          <div class="list-item"><p><strong>UNSC track:</strong> Resolution 2817 (2026) and repeated UN briefings continue to frame attacks on civilians and neighbors as urgent matters requiring cessation.</p><div class="src">UN documentation and press briefings, March 2026</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="energy" class="tab-panel">
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="h"><h3>Oil price chart</h3><button class="btn" onclick="sendPrompt('Explain the energy security outlook from the Iran war on 31 March 2026, covering Brent, Hormuz, Bab al-Mandab and fertilizer/shipping spillovers.')">Send follow-up prompt</button></div>
+        <canvas id="oilChart"></canvas>
+        <div class="footer-note">Month-start point is derived from Trading Economics’ reported 46.79% monthly gain; the intraday range and stress scenario come from Reuters/market reporting and SocGen commentary.</div>
+      </div>
+      <div class="card">
+        <div class="h"><h3>Regional impact severity</h3></div>
+        <table>
+          <thead><tr><th>Node</th><th>Risk</th><th>Why it matters now</th></tr></thead>
+          <tbody>
+            <tr><td>Strait of Hormuz</td><td><span class="status red">Extreme</span></td><td>UN-linked reporting says tanker traffic has dropped by more than 90%; Reuters cites 25–30% of global oil and 20% of LNG typically passing through.</td></tr>
+            <tr><td>Kharg Island</td><td><span class="status red">Extreme</span></td><td>Direct target of US coercive signaling; symbolically and materially central to Iran’s export capacity.</td></tr>
+            <tr><td>Bab al-Mandab</td><td><span class="status amber">High</span></td><td>Stress scenario risk rises with Houthi participation and shipping spillover fears.</td></tr>
+            <tr><td>Gulf energy infrastructure</td><td><span class="status red">High</span></td><td>Repeated warnings from leaders and markets that retaliation may hit desalination, refineries and power assets.</td></tr>
+            <tr><td>Fertilizer / food chain</td><td><span class="status amber">High</span></td><td>UN and IMF language now treats shipping disruption as a broader humanitarian-economic shock, not just an oil shock.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="media" class="tab-panel">
+    <div class="card">
+      <div class="h"><h3>Media narratives by outlet category</h3><button class="btn" onclick="sendPrompt('Compare how Gulf, Iranian, Lebanese, Iraqi, pan-Arab and UN-linked outlets framed the Iran war on 31 March 2026.')">Send follow-up prompt</button></div>
+      <table>
+        <thead><tr><th>Outlet category</th><th>Core frame today</th><th>Representative outlets</th><th>Observed tone</th></tr></thead>
+        <tbody>
+          <tr><td>Gulf mainstream</td><td>Regional security emergency; infrastructure risk; controlled openness to mediation; strong concern over Iranian attacks.</td><td>Asharq Al-Awsat, Al Arabiya, Arab News, Al Eqtisadiah</td><td><span class="status amber">Security-first</span></td></tr>
+          <tr><td>Qatar / AJ ecosystem</td><td>Dual framing: active war reporting + direct platforming of US diplomatic messaging while emphasizing uncertainty and legal stakes.</td><td>Al Jazeera</td><td><span class="status blue">Mediation + scrutiny</span></td></tr>
+          <tr><td>Egyptian mainstream</td><td>War as a severe energy-economic shock; Egypt positioning itself as a de-escalation advocate.</td><td>Ahram Online / Al Ahram</td><td><span class="status blue">Diplomatic-economic</span></td></tr>
+          <tr><td>Iranian state / aligned</td><td>War as imposed aggression; emphasis on resilience, retaliation, sovereignty and illegality of attacks on nuclear facilities.</td><td>Iran Press, Al-Alam</td><td><span class="status red">Resistance frame</span></td></tr>
+          <tr><td>Iranian opposition / exile</td><td>Focus on strike effects inside Iran, regime fractures, and leadership uncertainty.</td><td>Iran International Arabic</td><td><span class="status amber">Regime-stress frame</span></td></tr>
+          <tr><td>Lebanese partisan / national</td><td>Divergent lenses: Al-Akhbar highlights Iranian operational successes; An-Nahar emphasizes escalation, diplomacy and strategic costs.</td><td>Al-Akhbar, An-Nahar</td><td><span class="status amber">Polarized</span></td></tr>
+          <tr><td>Iraqi press</td><td>Regional spillover and domestic humanitarian-readiness concerns; some opinion framing stresses attrition logic.</td><td>Al-Mada, Al-Sabah</td><td><span class="status amber">Spillover-aware</span></td></tr>
+          <tr><td>UN / institutional</td><td>Civilian protection, maritime access, food/fertilizer supply chains, international law and de-escalation.</td><td>UN track / UN-linked reporting</td><td><span class="status blue">Institutional</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  
+<section id="disinfo" class="tab-panel">
+    <div class="card">
+      <div class="h"><h3>Disinformation and information operations — analytical table</h3><button class="btn" onclick="sendPrompt('Explain the current information war in the Iran conflict, separating verified falsehoods, AI-doctored content, unverified state allegations, cyber deception and political "fake news" rhetoric as of 31 March 2026.')">Send follow-up prompt</button></div>
+      <table>
+        <thead><tr><th>Category</th><th>What it means</th><th>Actor / ecosystem</th><th>Concrete example</th><th>Verification status</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>AI-doctored / manipulated content</td>
+            <td>Synthetic or altered imagery/video used to exaggerate battlefield outcomes.</td>
+            <td>State-linked and activist ecosystems, especially Iran-aligned online networks.</td>
+            <td>AP-reported cyber and disinformation activity shows AI and hacking folded into wartime influence operations.</td>
+            <td><span class="status amber">Mixed</span> — the tactic is documented; each individual asset still needs forensic review.</td>
+            <td>Creates false impressions of operational success and can move public emotion faster than corrections.</td>
+          </tr>
+          <tr>
+            <td>Cyber deception</td>
+            <td>Malware, phishing or spoofed safety messages masquerading as wartime information.</td>
+            <td>Iran-attributed cyber operators, according to AP reporting carried by Asharq Al-Awsat.</td>
+            <td>Android users in Israel reportedly received a bomb-shelter themed link that installed spyware.</td>
+            <td><span class="status red">Documented reporting</span></td>
+            <td>Not just propaganda: this converts panic and emergency behavior into intelligence collection.</td>
+          </tr>
+          <tr>
+            <td>Political “fake news” label</td>
+            <td>Officials dismiss uncomfortable reporting without publicly demonstrating falsity.</td>
+            <td>All sides can use it; most relevant here in state messaging battles.</td>
+            <td>Competing wartime claims on negotiations, damage and deterrence are often framed as lies before evidence is fully public.</td>
+            <td><span class="status amber">Rhetorical claim</span></td>
+            <td>Users should not confuse a political dismissal with an independent debunk.</td>
+          </tr>
+          <tr>
+            <td>Unverified state allegation</td>
+            <td>A claim from one belligerent that cannot yet be independently checked.</td>
+            <td>Iranian military messaging; allied and opposition ecosystems may amplify it.</td>
+            <td>IRGC commander Ali Fadavi said US warships were broadcasting “fake signals” through transponders and were farther from Iran than shown.</td>
+            <td><span class="status amber">Unverified</span></td>
+            <td>Could be true, false, or partial; analytically it signals how Iran wants the maritime balance perceived.</td>
+          </tr>
+          <tr>
+            <td>Narrative inflation</td>
+            <td>Overstating military degradation or coercive leverage while the other side still demonstrates capability.</td>
+            <td>US / Israeli public messaging and Iranian retaliation narratives alike.</td>
+            <td>Official claims of near-total degradation coexist with day-32 reporting of continued Iranian strikes and the “87th wave” narrative.</td>
+            <td><span class="status blue">Competing claims</span></td>
+            <td>The gap between claim and residual capability is a core escalation risk indicator.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="grid cols-2" style="margin-top:14px;">
+        <div class="card">
+          <div class="h"><h3>What “AI-doctored” means here</h3></div>
+          <p>In this dashboard, “AI-doctored” refers to visuals that are fully synthetic, partially altered, or paired with misleading captions in ways that change how an event is interpreted. It is broader than a simple typo or partisan spin.</p>
+          <div class="list">
+            <div class="list-item"><p><strong>How to assess it:</strong> compare with satellite imagery, metadata, repeated visual artifacts, geolocation and independent reporting.</p><div class="src">Method note based on standard OSINT practice.</div></div>
+            <div class="list-item"><p><strong>Dashboard rule:</strong> the tab distinguishes <em>verified falsehood</em>, <em>documented tactic</em>, and <em>unverified state allegation</em> rather than collapsing them into one bucket.</p><div class="src">Editorial rule applied in this product.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="h"><h3>Key same-day sources</h3></div>
+          <div class="list">
+            <div class="list-item"><p><strong>Asharq Al-Awsat / AP:</strong> cyber deception, spyware lure, AI and hacking as part of modern warfare.</p><div class="src"><a href="https://english.aawsat.com/features/5256717-hidden-battle%E2%80%A6iran-conflict-shows-how-digital-fight-ingrained-warfare" target="_blank" rel="noopener noreferrer">Read source — 31 Mar</a></div></div>
+            <div class="list-item"><p><strong>Al Jazeera:</strong> ongoing “87th wave” claim, residual Iranian strike activity, and competing maritime narratives.</p><div class="src"><a href="https://www.aljazeera.com/news/2026/3/31/iran-war-what-is-happening-on-day-32-of-us-israel-attacks" target="_blank" rel="noopener noreferrer">Read source — 31 Mar</a></div></div>
+            <div class="list-item"><p><strong>Al Jazeera dispatch from Tehran:</strong> large secondary explosions in Isfahan and Iranian messaging around possible US ground incursions.</p><div class="src"><a href="https://www.aljazeera.com/news/2026/3/31/us-israel-launch-major-attacks-as-iranian-authorities-maintain-defiance" target="_blank" rel="noopener noreferrer">Read source — 31 Mar</a></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="sources" class="tab-panel">
+    <div class="card">
+      <div class="h"><h3>Source guide</h3><button class="btn" onclick="sendPrompt('Audit this source set for ownership, lean, credibility and blind spots in coverage of the Iran war.')">Send follow-up prompt</button></div>
+      <table>
+        <thead><tr><th>Outlet</th><th>Category</th><th>Funding / structure</th><th>Editorial lean / use case</th></tr></thead>
+        <tbody>
+          <tr><td>Asharq Al-Awsat</td><td>Pan-Arab / Gulf mainstream</td><td>Saudi-linked</td><td>Establishment regional security framing; useful for Gulf official atmospherics</td></tr>
+          <tr><td>Al Arabiya / Sky News Arabia</td><td>Gulf broadcast / digital mainstream</td><td>State-linked / corporate Gulf backing</td><td>Security-focused, fast-turn reporting, strong Gulf establishment lens</td></tr>
+          <tr><td>Ahram Online / Al Ahram</td><td>Egyptian mainstream</td><td>State-linked</td><td>Diplomatic and economic angle; useful for Egyptian official messaging</td></tr>
+          <tr><td>Al Jazeera</td><td>Pan-Arab / global</td><td>Qatari state-funded network</td><td>Broad sourcing, strong live coverage, often foregrounds legal-humanitarian context</td></tr>
+          <tr><td>Al Eqtisadiah</td><td>Saudi business press</td><td>Saudi-based</td><td>Energy, market and macro spillover lens</td></tr>
+          <tr><td>Iran International Arabic</td><td>Iranian opposition / exile</td><td>Privately backed exile media</td><td>Useful on regime stress, internal effects, elite fractures; requires corroboration</td></tr>
+          <tr><td>Iran Press</td><td>Iranian state-aligned</td><td>Iranian state-linked</td><td>Official sovereignty / resistance messaging and attributed battlefield claims</td></tr>
+          <tr><td>Al-Alam TV</td><td>Iranian state broadcaster</td><td>Iranian state-funded</td><td>Strong resistance-axis frame; useful for official and proxy narrative mapping</td></tr>
+          <tr><td>An-Nahar</td><td>Lebanese mainstream</td><td>Private</td><td>National-interest and anti-escalation lens; useful for diplomacy / Lebanese spillover</td></tr>
+          <tr><td>Al-Akhbar</td><td>Lebanese partisan</td><td>Private / politically aligned</td><td>Closer to resistance-axis framing; useful for aligned ecosystem messaging</td></tr>
+          <tr><td>Al-Mada</td><td>Iraqi independent / national press</td><td>Private</td><td>Spillover, Iraqi readiness and humanitarian/economic consequences</td></tr>
+          <tr><td>Al-Sabah</td><td>Iraqi mainstream</td><td>State-linked</td><td>Official Iraqi and regional-security framing</td></tr>
+          <tr><td>France 24 Arabic</td><td>International public broadcaster</td><td>French public funding</td><td>External Arabic-language comparative coverage</td></tr>
+          <tr><td>RT Arabic</td><td>International state media</td><td>Russian state-funded</td><td>Useful for Russian framing, fast updates and amplified Iranian/state claims</td></tr>
+          <tr><td>UN News / UN track</td><td>Institutional</td><td>UN public information</td><td>Best for formal multilateral positions, humanitarian metrics and institutional initiatives</td></tr>
+          <tr><td>Arab News</td><td>Saudi English-language press</td><td>Saudi-based</td><td>Strong on Pakistan-Saudi diplomatic track and Gulf strategic commentary</td></tr>
+        </tbody>
+      </table>
+      <div class="footer-note">Source-guide lean labels are analytic shorthand for rapid comparative use; they are not exhaustive media profiles.</div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="h"><h3>Annotated source categories</h3><span class="section-note">Annex-style guide adapted from the uploaded report format</span></div>
+      <div>
+        <span class="source-pill">Iranian state / aligned</span>
+        <span class="source-pill">Opposition / exile</span>
+        <span class="source-pill">Gulf mainstream</span>
+        <span class="source-pill">Lebanese partisan / national</span>
+        <span class="source-pill">Iraqi national press</span>
+        <span class="source-pill">Institutional / UN</span>
+      </div>
+      <ul class="annex-list">
+        <li><strong>Iranian state / aligned:</strong> Iran Press, Al-Alam. Best used for official narrative mapping, sovereignty framing, and attributed claims.</li>
+        <li><strong>Opposition / exile:</strong> Iran International Arabic. Best used for regime-stress indicators and internal disruption, but requires corroboration.</li>
+        <li><strong>Gulf mainstream:</strong> Asharq Al-Awsat, Al Arabiya, Arab News, Al Eqtisadiah. Best used for Gulf policy atmospherics, energy risk, and establishment framing.</li>
+        <li><strong>Pan-Arab / regional comparative:</strong> Al Jazeera, Ahram Online. Best used for day-by-day live coverage, diplomatic messaging, and regional consequence framing.</li>
+        <li><strong>Lebanese / Iraqi press:</strong> An-Nahar, Al-Akhbar, Al-Mada, Al-Sabah. Best used for spillover effects, partisan regional narratives, and local political reading.</li>
+        <li><strong>Institutional / UN:</strong> UN track, UN-linked reporting. Best used for formal multilateral developments, humanitarian access, and maritime stabilization initiatives.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="h"><h3>Key sourcing used in this build</h3><span class="section-note">Outlet + date tags as requested</span></div>
+    <div class="legend">
+      <div class="sw"><span class="box" style="background:var(--red)"></span> escalation / danger</div>
+      <div class="sw"><span class="box" style="background:var(--amber)"></span> warning / uncertainty</div>
+      <div class="sw"><span class="box" style="background:var(--blue)"></span> diplomacy / information</div>
+      <div class="sw"><span class="box" style="background:var(--green)"></span> de-escalation</div>
+    </div>
+    <p class="small">Today’s dashboard draws on same-day or near-same-day reporting from Asharq Al-Awsat, Al Arabiya, Ahram Online, Al Jazeera, Iran International Arabic, Iran Press, Al-Alam, An-Nahar, Al-Akhbar, Al-Mada, Al-Sabah, RT Arabic, Arab News, Reuters / IMF market reporting, Trading Economics, and UN-linked documentation / reposted UN material. Where a named source in the user list was unavailable via search access or had no clearly retrievable same-day item, the outlet still appears in the source guide but not necessarily in the claim set.</p>
+  </div>
+  <div class="print-only small" style="margin-top:12px;">Printed from the Iran War Situation Dashboard — policy report layout enabled for PDF export.</div>
+</div>
+
+<script>
+const tabs = [
+  ['overview','Overview'],
+  ['military','Military'],
+  ['diplomacy','Diplomacy'],
+  ['energy','Energy'],
+  ['media','Media narratives'],
+  ['disinfo','Disinformation'],
+  ['sources','Source guide']
+];
+
+const tabsEl = document.getElementById('tabs');
+for (const [id, label] of tabs) {
+  const btn = document.createElement('button');
+  btn.className = 'tab-btn' + (id === 'overview' ? ' active' : '');
+  btn.textContent = label;
+  btn.onclick = () => activateTab(id, btn);
+  tabsEl.appendChild(btn);
+}
+function activateTab(id, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+let __followupPrompt = "";
+function openPromptModal(prompt) {
+  __followupPrompt = Array.isArray(prompt) ? prompt.join("
+") : String(prompt || "");
+  const overlay = document.getElementById("promptModalOverlay");
+  const textarea = document.getElementById("promptModalText");
+  if (textarea) textarea.value = __followupPrompt;
+  if (overlay) overlay.style.display = "flex";
+}
+async function copyFollowupPrompt() {
+  const textarea = document.getElementById("promptModalText");
+  const text = textarea ? textarea.value : __followupPrompt;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      alert("Prompt copied. Paste it into ChatGPT.");
+      return;
+    }
+  } catch (err) {
+    console.error("Clipboard write failed:", err);
+  }
+  if (textarea) {
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+  }
+  try {
+    const ok = document.execCommand("copy");
+    if (ok) {
+      alert("Prompt copied. Paste it into ChatGPT.");
+      return;
+    }
+  } catch (err) {
+    console.error("execCommand copy failed:", err);
+  }
+  alert("Copy the prompt manually from the text box, then paste it into ChatGPT.");
+}
+function closePromptModal() {
+  const overlay = document.getElementById("promptModalOverlay");
+  if (overlay) overlay.style.display = "none";
+}
+function openChatGPTTab() {
+  window.open("https://chatgpt.com/", "_blank", "noopener,noreferrer");
+}
+function sendPrompt(prompt) {
+  openPromptModal(prompt);
+}
+document.addEventListener("DOMContentLoaded", function() {
+  const copyBtn = document.getElementById("promptCopyBtn");
+  const openBtn = document.getElementById("promptOpenBtn");
+  const closeBtn = document.getElementById("promptCloseBtn");
+  const overlay = document.getElementById("promptModalOverlay");
+  if (copyBtn) copyBtn.addEventListener("click", copyFollowupPrompt);
+  if (openBtn) openBtn.addEventListener("click", openChatGPTTab);
+  if (closeBtn) closeBtn.addEventListener("click", closePromptModal);
+  if (overlay) overlay.addEventListener("click", function(e){ if (e.target === overlay) closePromptModal(); });
+});
+
+const oilCtx = document.getElementById('oilChart');
+new Chart(oilCtx, {
+  type: 'line',
+  data: {
+    labels: ['28 Feb (derived month baseline)', '20 Mar (elevated)', '30 Mar reported current', 'Stress case'],
+    datasets: [{
+      label: 'Brent crude (USD/bbl)',
+      data: [77.8, 101, 114.1, 150],
+      tension: 0.25,
+      fill: false,
+      borderWidth: 3,
+      pointRadius: 4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text') } } },
+    scales: {
+      x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted') }, grid: { color: 'rgba(148,163,184,.15)' } },
+      y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted') }, grid: { color: 'rgba(148,163,184,.15)' } }
+    }
+  }
+});
+
+const alignCtx = document.getElementById('alignmentChart');
+new Chart(alignCtx, {
+  type: 'bar',
+  data: {
+    labels: ['Pakistan', 'Saudi Arabia', 'Türkiye', 'Egypt', 'Qatar', 'EU', 'UN'],
+    datasets: [{
+      label: 'Observed de-escalation activism (0-10)',
+      data: [10, 8, 8, 8, 6, 6, 9],
+      borderWidth: 1
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text') } } },
+    scales: {
+      x: { min: 0, max: 10, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted') }, grid: { color: 'rgba(148,163,184,.15)' } },
+      y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted') }, grid: { display: false } }
+    }
+  }
+});
+</script>
+
+<div id="promptModalOverlay">
+  <div id="promptModal" role="dialog" aria-modal="true" aria-labelledby="promptModalTitle">
+    <h3 id="promptModalTitle">Follow-up prompt</h3>
+    <p>Copy this prompt, then open ChatGPT in a new tab.</p>
+    <textarea id="promptModalText" readonly></textarea>
+    <div class="actions">
+      <button id="promptCopyBtn" type="button">Copy prompt</button>
+      <button id="promptOpenBtn" type="button">Open ChatGPT</button>
+      <button id="promptCloseBtn" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+</script>
+<script>
+let __followupPrompt = "";
+function openPromptModal(prompt) {
+  __followupPrompt = Array.isArray(prompt) ? prompt.join("\n") : String(prompt || "");
+  const overlay = document.getElementById("promptModalOverlay");
+  const textarea = document.getElementById("promptModalText");
+  if (textarea) textarea.value = __followupPrompt;
+  if (overlay) overlay.style.display = "flex";
+}
+async function copyFollowupPrompt() {
+  const textarea = document.getElementById("promptModalText");
+  const text = textarea ? textarea.value : __followupPrompt;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      alert("Prompt copied. Paste it into ChatGPT.");
+      return;
+    }
+  } catch (err) {
+    console.error("Clipboard write failed:", err);
+  }
+  if (textarea) {
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+  }
+  try {
+    const ok = document.execCommand("copy");
+    if (ok) {
+      alert("Prompt copied. Paste it into ChatGPT.");
+      return;
+    }
+  } catch (err) {
+    console.error("execCommand copy failed:", err);
+  }
+  alert("Copy the prompt manually from the text box, then paste it into ChatGPT.");
+}
+function closePromptModal() {
+  const overlay = document.getElementById("promptModalOverlay");
+  if (overlay) overlay.style.display = "none";
+}
+function openChatGPTTab() {
+  window.open("https://chatgpt.com/", "_blank", "noopener,noreferrer");
+}
+function sendPrompt(prompt) {
+  openPromptModal(prompt);
+}
+document.addEventListener("DOMContentLoaded", function() {
+  const copyBtn = document.getElementById("promptCopyBtn");
+  const openBtn = document.getElementById("promptOpenBtn");
+  const closeBtn = document.getElementById("promptCloseBtn");
+  const overlay = document.getElementById("promptModalOverlay");
+  if (copyBtn) copyBtn.addEventListener("click", copyFollowupPrompt);
+  if (openBtn) openBtn.addEventListener("click", openChatGPTTab);
+  if (closeBtn) closeBtn.addEventListener("click", closePromptModal);
+  if (overlay) overlay.addEventListener("click", function(e){ if (e.target === overlay) closePromptModal(); });
+});
+</script>
+</body>
+</html>
